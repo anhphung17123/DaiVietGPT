@@ -1,0 +1,53 @@
+.App {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 100vh;
+  background: url('./assets/images/Background.png') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.App::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 200px;
+  width: 500px;
+  height: 400px;
+  background: url('./assets/images/Decoration.png') no-repeat;
+  background-size: contain;
+  z-index: 0;
+  opacity: 0.8;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .App::before {
+    left: 100px;
+    width: 400px;
+    height: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .App {
+    background-attachment: scroll;
+  }
+  
+  .App::before {
+    left: 50px;
+    width: 300px;
+    height: 240px;
+  }
+}
+
+@media (max-width: 480px) {
+  .App::before {
+    left: 20px;
+    width: 200px;
+    height: 160px;
+  }
+}
