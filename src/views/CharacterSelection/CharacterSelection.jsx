@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowRight, faLock, faCartShopping } from '@fortawesome/free-solid-svg-icons';
-import { useCharacters, useMockCharacters } from '../../hooks/useApi';
-import { API_CONFIG } from '../../constants/config';
+import { useMockCharacters } from '../../hooks/useApi';
 import './CharacterSelection.css';
 
 const CharacterSelection = () => {
