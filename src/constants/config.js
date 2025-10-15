@@ -1,6 +1,6 @@
 // API Configuration
 export const API_CONFIG = {
-  SERVER_URL: process.env.REACT_APP_SERVER_URL || "http://localhost:3005",
+  SERVER_URL: process.env.REACT_APP_SERVER_URL || "http://localhost:8000",
   API_BASE_URL: process.env.REACT_APP_API_BASE_URL || 'https://8009-35-203-188-47.ngrok-free.app',
   ENDPOINTS: {
     CHARACTERS: '/api/characters',
