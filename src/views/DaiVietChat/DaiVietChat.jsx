@@ -4,11 +4,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faMicrophone, faCircle, faPaperPlane } from "@fortawesome/free-solid-svg-icons";
 import { useCharacter } from "../../hooks/useApi";
 import { API_CONFIG } from "../../constants/config";
-import { removeAccentsAndSpaces, formatDate } from "../../utils/helpers";
-import downloadAll from "../../services/downloader.js";
+import { formatDate } from "../../utils/helpers";
 import Video from "../../components/Video/Video.jsx";
-import { MOCK_CHAT_RESPONSES, MOCK_VIDEO_URLS } from "../../data/mockData";
+import LoadingDots from "../../components/LoadingDots/LoadingDots.jsx";
 import "./DaiVietChat.css";
+import introductionVideos from "../../assets/videos/initial_introduction/videoRoot.js";
 
 const STREAM_URL = `${API_CONFIG.SERVER_URL}/chat/stream-post`;
 
@@ -17,11 +17,12 @@ const DaiVietChat = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [isRecording, setIsRecording] = useState(false);
-  const [speech, setSpeech] = useState("");
+  const [talkingHeadVideo, setTalkingHeadVideo] = useState("");
   const [notification, setNotification] = useState("");
   const messagesEndRef = useRef();
   const typingQueueRef = useRef([]);
   const typingActiveRef = useRef(false);
+  const videoRef = useRef(null);
 
   const { character, loading: characterLoading, error: characterError } = useCharacter(id);
 
@@ -47,7 +48,6 @@ const DaiVietChat = () => {
           return updated;
         });
 
-        // tốc độ gõ: 6–12ms/ký tự (tuỳ)
         await new Promise((r) => setTimeout(r, 8));
       }
       typingActiveRef.current = false;
@@ -56,7 +56,6 @@ const DaiVietChat = () => {
   );
 
   function buildHistoryForGemini(messages) {
-    // chỉ lấy n lượt gần nhất nếu muốn, vd: slice(-8)
     return messages
       .filter((m) => m.text && m.text !== "video")
       .map((m) => ({
@@ -77,37 +76,60 @@ const DaiVietChat = () => {
     }
   }, [character]);
 
-  // Auto scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const textToSpeech = useCallback(
+  const generateTalkingHeadVideo = useCallback(
     async (text) => {
       try {
-        const response = await fetch(`${API_CONFIG.API_BASE_URL}${API_CONFIG.ENDPOINTS.TEXT_TO_VIDEO}`, {
+        if (introductionVideos[character.code]) {
+          if (videoRef.current) {
+            videoRef.current.currentTime = 0;
+            videoRef.current.play();
+          }
+          setTalkingHeadVideo(introductionVideos[character.code]);
+          return;
+        }
+
+        if (localStorage.getItem(text)) {
+          setTalkingHeadVideo(localStorage.getItem(text));
+          return;
+        }
+
+        const formData = new FormData();
+        formData.append("text", text);
+
+        const response = await fetch(`https://kirstie-unthinkable-vita.ngrok-free.dev/generate_video_new`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            text,
-            name: removeAccentsAndSpaces(character?.name || "TranHungDao")
-          })
+          body: formData
         });
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        setSpeech(data.video_url);
+        const res = await response.json();
+        const base64Video = res.data;
+
+        // Tạo URL Blob từ dữ liệu base64
+        const byteCharacters = atob(base64Video);
+        const byteNumbers = new Array(byteCharacters.length);
+
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: "video/mp4" });
+        const videoUrl = URL.createObjectURL(blob);
+
+        setTalkingHeadVideo(videoUrl);
+
+        // Lưu tạm lại videoUrl để cho phép phát lại video đó
+        localStorage.setItem(text, videoUrl);
       } catch (error) {
         console.warn("Text-to-speech API failed, using mock video:", error.message);
-
-        // Use mock video URL
-        const mockVideoUrl = MOCK_VIDEO_URLS[Math.floor(Math.random() * MOCK_VIDEO_URLS.length)];
-        setSpeech(mockVideoUrl);
       }
     },
     [character]
@@ -115,7 +137,6 @@ const DaiVietChat = () => {
 
   const fetchMessage = useCallback(
     async (chatMessages, newMessage) => {
-      // Thêm 1 message “rỗng” để đổ dần chunk vào
       const skeletonMessage = {
         text: "",
         sentTime: new Date().toISOString(),
@@ -129,7 +150,7 @@ const DaiVietChat = () => {
         const payload = {
           name: character?.name || "DefaultName",
           message: newMessage.text,
-        history: buildHistoryForGemini(chatMessages)
+          history: buildHistoryForGemini(chatMessages)
         };
 
         const res = await fetch(STREAM_URL, {
@@ -155,29 +176,8 @@ const DaiVietChat = () => {
           const chunk = decoder.decode(value, { stream: true });
           await typeEnqueue(chunk);
         }
-
-        // Stream xong thì gọi TTS (nếu bạn muốn phát audio/video sau khi hoàn tất)
-        //   if (fullText.trim()) {
-        //     textToSpeech(fullText);
-        //   }
       } catch (error) {
         console.warn("Chat stream API failed, using mock response:", error?.message);
-
-        // fallback mock như code cũ
-        const characterName = character?.name || "Trần Hưng Đạo";
-        const mockResponses = MOCK_CHAT_RESPONSES[characterName] || MOCK_CHAT_RESPONSES["Trần Hưng Đạo"];
-        const randomResponse = mockResponses[Math.floor(Math.random() * mockResponses.length)];
-
-        setMessages((prev) => {
-          if (prev.length === 0) return prev;
-          const lastIdx = prev.length - 1;
-          const last = prev[lastIdx];
-          const updated = [...prev];
-          updated[lastIdx] = { ...last, text: randomResponse, isLoading: false };
-          return updated;
-        });
-
-        //   textToSpeech(randomResponse);
       }
     },
     [character, typeEnqueue]
@@ -195,12 +195,6 @@ const DaiVietChat = () => {
     const updatedMessages = [...messages, newMessage];
     setMessages(updatedMessages);
     setInputMessage("");
-
-    //   if (inputRef.current?.getIsChecked() === false) {
-
-    //   } else {
-    //     await handleSendVideo(updatedMessages, newMessage);
-    //   }
     await fetchMessage(updatedMessages, newMessage);
   }, [inputMessage, messages, fetchMessage]);
 
@@ -246,41 +240,6 @@ const DaiVietChat = () => {
     recognition.start();
   }, []);
 
-  const handleSendVideo = useCallback(async (chatMessages, newMessage) => {
-    const skeletonMessage = {
-      text: "Đang tạo video...",
-      sentTime: new Date().toISOString(),
-      sender: "Chat Bot",
-      isLoading: true
-    };
-
-    setMessages([...chatMessages, skeletonMessage]);
-
-    try {
-      const videoUrls = await downloadAll(newMessage.text);
-      const newMessageReply = {
-        text: "video",
-        videoUrls: videoUrls,
-        sentTime: new Date().toISOString(),
-        sender: "Chat Bot",
-        isLoading: false
-      };
-      setMessages([...chatMessages, newMessageReply]);
-    } catch (error) {
-      console.warn("Video generation API failed, using mock videos:", error.message);
-
-      // Use mock video URLs
-      const newMessageReply = {
-        text: "video",
-        videoUrls: MOCK_VIDEO_URLS,
-        sentTime: new Date().toISOString(),
-        sender: "Chat Bot",
-        isLoading: false
-      };
-      setMessages([...chatMessages, newMessageReply]);
-    }
-  }, []);
-
   if (characterLoading) {
     return (
       <div className="chat-loading">
@@ -310,8 +269,8 @@ const DaiVietChat = () => {
     <div className="chatBox">
       {notification && <div className="notification">{notification}</div>}
       <div className="chatBox-video">
-        {speech ? (
-          <video controls autoPlay src={speech} className="character-video">
+        {talkingHeadVideo ? (
+          <video ref={videoRef} controls autoPlay src={talkingHeadVideo} className="character-video">
             Trình duyệt của bạn không hỗ trợ video.
           </video>
         ) : (
@@ -336,22 +295,21 @@ const DaiVietChat = () => {
                 <div className="chatBox-body-content-message-item">
                   <div className="chatBox-body-content-message-item-avatar">
                     <img
-                      src={message.sender === "Chat Bot" ? character.avatar : "https://picsum.photos/200"}
+                      src={
+                        message.sender === "Chat Bot"
+                          ? character.avatar
+                          : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpA2R5kbHzeMT2Yhb8CZi7D6xYE2tpjhD62w&s"
+                      }
                       alt={message.sender === "Chat Bot" ? `${character.name} avatar` : "User avatar"}
                     />
                   </div>
                   <div className="chatBox-body-content-message-item-content">
-                    {message.isLoading ? (
-                      <div className="message-loading">
-                        <div className="typing-indicator">
-                          <span></span>
-                          <span></span>
-                          <span></span>
-                        </div>
-                        <span className="loading-text">Đang soạn tin nhắn...</span>
-                      </div>
-                    ) : message.text === "video" ? (
+                    {message.text === "video" ? (
                       <Video videoUrls={message.videoUrls} />
+                    ) : !message.text || message.text.trim() === "" ? (
+                      <div className="message-loading">
+                        <LoadingDots />
+                      </div>
                     ) : (
                       <div className="message-content">
                         <p style={{ whiteSpace: "pre-line", margin: 0 }}>{message.text}</p>
@@ -359,7 +317,7 @@ const DaiVietChat = () => {
                           <div className="message-actions">
                             <button
                               className="action-button"
-                              onClick={() => textToSpeech(message.text)}
+                              onClick={() => generateTalkingHeadVideo(message.text)}
                               title="Phát âm thanh"
                             >
                               🔊

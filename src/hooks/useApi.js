@@ -178,13 +178,13 @@ export const useCharacter = (characterId) => {
     setError(null);
 
     if (USE_MOCK_DATA) {
-      // Use mock data immediately for development
       console.log('Using mock data for character:', characterId);
       const mockCharacter = MOCK_CHARACTERS.find(char => char.id.toString() === characterId.toString());
+      console.log("mockCharacter ", mockCharacter)
       setTimeout(() => {
         setCharacter(mockCharacter);
         setLoading(false);
-      }, 300); // Small delay to show loading state
+      }, 300);
       return mockCharacter;
     }
 
