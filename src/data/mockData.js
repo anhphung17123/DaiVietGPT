@@ -1,15 +1,18 @@
 // Mock data for CharacterAI Frontend
-const DEFAULT_CHARACTER_IMAGE = "https://image.vtcnews.vn/resize/ma/upload/2023/02/12/chuyen-it-biet-noi-ben-song-voi-chien-cua-tran-hung-dao-bi-sa-lay-8-20125397.jpg";
+import characterImages from '../assets/images/character/imageRoot';
+import introductionVideos from '../assets/videos/initial_introduction/videoRoot';
 
 export const MOCK_CHARACTERS = [
   {
     id: 1,
+    code: 'TranHungDao',
     name: "Trần Hưng Đạo",
     description: "Đại tướng quân nhà Trần, người đã lãnh đạo quân dân Đại Việt đánh bại quân Nguyên Mông xâm lược. Ông là biểu tượng của tinh thần yêu nước và tài năng quân sự kiệt xuất.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.TranHungDao,
+    avatar: characterImages.TranHungDao,
+    introductionVideo: introductionVideos.TranHungDao,
     isLocked: 0,
-    price: 490700,
+    price: 49000,
     era: "Nhà Trần (1228-1300)",
     achievements: [
       "Lãnh đạo quân dân Đại Việt đánh bại quân Nguyên Mông",
@@ -19,12 +22,13 @@ export const MOCK_CHARACTERS = [
   },
   {
     id: 2,
+    code: 'LeLoi',
     name: "Lê Lợi",
     description: "Vua Lê Thái Tổ, người khởi xướng và lãnh đạo cuộc khởi nghĩa Lam Sơn đánh đuổi quân Minh xâm lược, khôi phục nền độc lập cho Đại Việt.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.LeLoi,
+    avatar: characterImages.LeLoi,
     isLocked: 0,
-    price: 490700,
+    price: 49000,
     era: "Nhà Lê (1428-1789)",
     achievements: [
       "Lãnh đạo khởi nghĩa Lam Sơn",
@@ -34,12 +38,13 @@ export const MOCK_CHARACTERS = [
   },
   {
     id: 3,
+    code: 'NguyenTrai',
     name: "Nguyễn Trãi",
     description: "Nhà văn, nhà thơ, nhà chính trị và quân sự kiệt xuất. Ông là cố vấn của Lê Lợi và tác giả của 'Bình Ngô đại cáo' - bản tuyên ngôn độc lập đầu tiên của Việt Nam.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.NguyenTrai,
+    avatar: characterImages.NguyenTrai,
     isLocked: 0,
-    price: 490700,
+    price: 49000,
     era: "Nhà Lê (1380-1442)",
     achievements: [
       "Tác giả 'Bình Ngô đại cáo'",
@@ -49,12 +54,13 @@ export const MOCK_CHARACTERS = [
   },
   {
     id: 4,
+    code: 'HaiBaTrung',
     name: "Hai Bà Trưng",
     description: "Hai chị em Trưng Trắc và Trưng Nhị, những nữ anh hùng đầu tiên trong lịch sử Việt Nam, đã lãnh đạo cuộc khởi nghĩa chống lại ách đô hộ của nhà Hán.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.HaiBaTrung,
+    avatar: characterImages.HaiBaTrung,
     isLocked: 1,
-    price: 490700,
+    price: 49000,
     era: "Thế kỷ 1 sau Công nguyên",
     achievements: [
       "Lãnh đạo khởi nghĩa chống nhà Hán",
@@ -64,12 +70,13 @@ export const MOCK_CHARACTERS = [
   },
   {
     id: 5,
+    code: 'LyThuongKiet',
     name: "Lý Thường Kiệt",
     description: "Đại tướng quân nhà Lý, người đã lãnh đạo quân dân Đại Việt đánh bại quân Tống xâm lược và là tác giả của bài thơ 'Nam quốc sơn hà' nổi tiếng.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.LyThuongKiet,
+    avatar: characterImages.LyThuongKiet,
     isLocked: 1,
-    price: 490700,
+    price: 49000,
     era: "Nhà Lý (1019-1105)",
     achievements: [
       "Đánh bại quân Tống xâm lược",
@@ -79,12 +86,13 @@ export const MOCK_CHARACTERS = [
   },
   {
     id: 6,
+    code: 'LyCongUan',
     name: "Lý Công Uẩn",
     description: "Vua Lý Thái Tổ, người sáng lập ra nhà Lý và dời đô từ Hoa Lư về Thăng Long (Hà Nội ngày nay), mở ra một thời kỳ phát triển rực rỡ của Đại Việt.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.LyCongUan,
+    avatar: characterImages.LyCongUan,
     isLocked: 1,
-    price: 490700,
+    price: 49000,
     era: "Nhà Lý (974-1028)",
     achievements: [
       "Sáng lập nhà Lý",
@@ -94,12 +102,13 @@ export const MOCK_CHARACTERS = [
   },
   {
     id: 7,
+    code: 'TranBinhTrong',
     name: "Trần Bình Trọng",
     description: "Tướng quân nhà Trần, người đã hy sinh anh dũng trong cuộc kháng chiến chống quân Nguyên Mông với câu nói bất hủ 'Ta thà làm quỷ nước Nam, chứ không thèm làm vương đất Bắc'.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.TranBinhTrong,
+    avatar: characterImages.TranBinhTrong,
     isLocked: 1,
-    price: 490700,
+    price: 49000,
     era: "Nhà Trần (1259-1285)",
     achievements: [
       "Hy sinh anh dũng chống quân Nguyên",
@@ -109,12 +118,13 @@ export const MOCK_CHARACTERS = [
   },
   {
     id: 8,
+    code: 'PhungThiChinh',
     name: "Phùng Thị Chính",
     description: "Nữ tướng tài ba của Hai Bà Trưng, người đã có công lớn trong cuộc khởi nghĩa chống lại ách đô hộ của nhà Hán và là biểu tượng của tinh thần nữ quyền Việt Nam.",
-    background: DEFAULT_CHARACTER_IMAGE,
-    avatar: DEFAULT_CHARACTER_IMAGE,
+    background: characterImages.PhungThiChinh,
+    avatar: characterImages.PhungThiChinh,
     isLocked: 1,
-    price: 490700,
+    price: 49000,
     era: "Thế kỷ 1 sau Công nguyên",
     achievements: [
       "Nữ tướng của Hai Bà Trưng",

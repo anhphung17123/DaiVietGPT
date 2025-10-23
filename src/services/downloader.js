@@ -24,4 +24,4 @@ const downloadAll = async (prompt) => {
     return blobUrls;
 }
 
-export default downloadAll;console.log('video downloaded');
+export default downloadAll;
