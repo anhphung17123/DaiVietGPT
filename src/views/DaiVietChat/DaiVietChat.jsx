@@ -9,6 +9,7 @@ import Video from "../../components/Video/Video.jsx";
 import LoadingDots from "../../components/LoadingDots/LoadingDots.jsx";
 import "./DaiVietChat.css";
 import introductionVideos from "../../assets/videos/initial_introduction/videoRoot.js";
+import sandClockIcon from "../../assets/images/sand-clock.png";
 
 const STREAM_URL = `${API_CONFIG.SERVER_URL}/chat/stream-post`;
 
@@ -19,6 +20,8 @@ const DaiVietChat = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [talkingHeadVideo, setTalkingHeadVideo] = useState("");
   const [notification, setNotification] = useState("");
+  const [hasStarted, setHasStarted] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const messagesEndRef = useRef();
   const typingQueueRef = useRef([]);
   const typingActiveRef = useRef(false);
@@ -64,15 +67,29 @@ const DaiVietChat = () => {
       }));
   }
 
-  useEffect(() => {
-    if (character) {
-      setMessages([
-        {
-          text: `Xin chào, tôi là ${character.name}, tôi có thể giúp gì cho bạn?`,
-          sentTime: new Date().toISOString(),
-          sender: "Chat Bot"
+  const handleStart = useCallback(() => {
+    if (!character) return;
+
+    setHasStarted(true);
+
+    // Hiển thị message chào
+    setMessages([
+      {
+        text: `Xin chào, tôi là ${character.name}, tôi có thể giúp gì cho bạn?`,
+        sentTime: new Date().toISOString(),
+        sender: "Chat Bot"
+      }
+    ]);
+
+    // Phát video introduction nếu có
+    if (introductionVideos[character.code]) {
+      setTalkingHeadVideo(introductionVideos[character.code]);
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.currentTime = 0;
+          videoRef.current.play();
         }
-      ]);
+      }, 500);
     }
   }, [character]);
 
@@ -83,7 +100,10 @@ const DaiVietChat = () => {
   const generateTalkingHeadVideo = useCallback(
     async (text) => {
       try {
-        if (introductionVideos[character.code]) {
+        if (
+          introductionVideos[character.code] &&
+          text === `Xin chào, tôi là ${character.name}, tôi có thể giúp gì cho bạn?`
+        ) {
           if (videoRef.current) {
             videoRef.current.currentTime = 0;
             videoRef.current.play();
@@ -97,10 +117,12 @@ const DaiVietChat = () => {
           return;
         }
 
+        setIsGeneratingVideo(true);
+
         const formData = new FormData();
         formData.append("text", text);
 
-        const response = await fetch(`https://kirstie-unthinkable-vita.ngrok-free.dev/generate_video_new`, {
+        const response = await fetch(`https://kirstie-unthinkable-vita.ngrok-free.dev/generate_video`, {
           method: "POST",
           body: formData
         });
@@ -130,6 +152,8 @@ const DaiVietChat = () => {
         localStorage.setItem(text, videoUrl);
       } catch (error) {
         console.warn("Text-to-speech API failed, using mock video:", error.message);
+      } finally {
+        setIsGeneratingVideo(false);
       }
     },
     [character]
@@ -168,19 +192,26 @@ const DaiVietChat = () => {
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
+        let fullText = "";
 
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
+          fullText += chunk;
           await typeEnqueue(chunk);
+        }
+
+        // Sau khi nhận đầy đủ các chunk, gọi generateTalkingHeadVideo
+        if (fullText.trim()) {
+          await generateTalkingHeadVideo(fullText);
         }
       } catch (error) {
         console.warn("Chat stream API failed, using mock response:", error?.message);
       }
     },
-    [character, typeEnqueue]
+    [character, typeEnqueue, generateTalkingHeadVideo]
   );
 
   const handleSend = useCallback(async () => {
@@ -268,7 +299,14 @@ const DaiVietChat = () => {
   return (
     <div className="chatBox">
       {notification && <div className="notification">{notification}</div>}
+
       <div className="chatBox-video">
+        {isGeneratingVideo && (
+          <div className="video-loading-overlay">
+            <img src={sandClockIcon} alt="Loading" className="sand-clock-icon" />
+            <p>Đang tạo video...</p>
+          </div>
+        )}
         {talkingHeadVideo ? (
           <video ref={videoRef} controls autoPlay src={talkingHeadVideo} className="character-video">
             Trình duyệt của bạn không hỗ trợ video.
@@ -277,105 +315,116 @@ const DaiVietChat = () => {
           <img src={character.background} alt={`${character.name} background`} className="character-background" />
         )}
       </div>
+
       <div className="chatBox-main">
         <div className="chatBox-header">
           <div className="chatBox-header-title">
             <h3>Nhân vật {character.name}</h3>
           </div>
         </div>
-        <div className="chatBox-body">
-          <div className="chatBox-body-content">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`chatBox-body-content-message ${
-                  message.sender === "Chat Bot" ? "chatBox-message__incoming" : "chatBox-message__outgoing"
-                }`}
-              >
-                <div className="chatBox-body-content-message-item">
-                  <div className="chatBox-body-content-message-item-avatar">
-                    <img
-                      src={
-                        message.sender === "Chat Bot"
-                          ? character.avatar
-                          : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpA2R5kbHzeMT2Yhb8CZi7D6xYE2tpjhD62w&s"
-                      }
-                      alt={message.sender === "Chat Bot" ? `${character.name} avatar` : "User avatar"}
-                    />
-                  </div>
-                  <div className="chatBox-body-content-message-item-content">
-                    {message.text === "video" ? (
-                      <Video videoUrls={message.videoUrls} />
-                    ) : !message.text || message.text.trim() === "" ? (
-                      <div className="message-loading">
-                        <LoadingDots />
+        
+        {!hasStarted ? (
+          <div className="start-screen">
+            <button className="start-button" onClick={handleStart}>
+              Bắt đầu
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="chatBox-body">
+              <div className="chatBox-body-content">
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    className={`chatBox-body-content-message ${
+                      message.sender === "Chat Bot" ? "chatBox-message__incoming" : "chatBox-message__outgoing"
+                    }`}
+                  >
+                    <div className="chatBox-body-content-message-item">
+                      <div className="chatBox-body-content-message-item-avatar">
+                        <img
+                          src={
+                            message.sender === "Chat Bot"
+                              ? character.avatar
+                              : "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQpA2R5kbHzeMT2Yhb8CZi7D6xYE2tpjhD62w&s"
+                          }
+                          alt={message.sender === "Chat Bot" ? `${character.name} avatar` : "User avatar"}
+                        />
                       </div>
-                    ) : (
-                      <div className="message-content">
-                        <p style={{ whiteSpace: "pre-line", margin: 0 }}>{message.text}</p>
-                        {message.sender === "Chat Bot" && (
-                          <div className="message-actions">
-                            <button
-                              className="action-button"
-                              onClick={() => generateTalkingHeadVideo(message.text)}
-                              title="Phát âm thanh"
-                            >
-                              🔊
-                            </button>
-                            <button
-                              className="action-button"
-                              onClick={async () => {
-                                try {
-                                  await navigator.clipboard.writeText(message.text);
-                                  setNotification("Đã sao chép tin nhắn!");
-                                  setTimeout(() => setNotification(""), 2000);
-                                } catch (err) {
-                                  console.error("Failed to copy text: ", err);
-                                }
-                              }}
-                              title="Sao chép"
-                            >
-                              📋
-                            </button>
+                      <div className="chatBox-body-content-message-item-content">
+                        {message.text === "video" ? (
+                          <Video videoUrls={message.videoUrls} />
+                        ) : !message.text || message.text.trim() === "" ? (
+                          <div className="message-loading">
+                            <LoadingDots />
+                          </div>
+                        ) : (
+                          <div className="message-content">
+                            <p style={{ whiteSpace: "pre-line", margin: 0 }}>{message.text}</p>
+                            {message.sender === "Chat Bot" && (
+                              <div className="message-actions">
+                                <button
+                                  className="action-button"
+                                  onClick={() => generateTalkingHeadVideo(message.text)}
+                                  title="Phát âm thanh"
+                                >
+                                  🔊
+                                </button>
+                                <button
+                                  className="action-button"
+                                  onClick={async () => {
+                                    try {
+                                      await navigator.clipboard.writeText(message.text);
+                                      setNotification("Đã sao chép tin nhắn!");
+                                      setTimeout(() => setNotification(""), 2000);
+                                    } catch (err) {
+                                      console.error("Failed to copy text: ", err);
+                                    }
+                                  }}
+                                  title="Sao chép"
+                                >
+                                  📋
+                                </button>
+                              </div>
+                            )}
                           </div>
                         )}
+                        <div className="message-time">{formatDate(message.sentTime)}</div>
                       </div>
-                    )}
-                    <div className="message-time">{formatDate(message.sentTime)}</div>
+                    </div>
                   </div>
-                </div>
+                ))}
+                <div ref={messagesEndRef} />
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-        <div className="chatBox-body-input">
-          <input
-            type="text"
-            placeholder="Nhập tin nhắn..."
-            value={inputMessage}
-            onChange={(e) => setInputMessage(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={characterLoading}
-          />
-          {/* <ToggleButton ref={inputRef} /> */}
-          <button
-            className={`mic-button ${isRecording ? "recording" : ""}`}
-            onClick={handleRecord}
-            disabled={characterLoading}
-            aria-label={isRecording ? "Dừng ghi âm" : "Bắt đầu ghi âm"}
-          >
-            <FontAwesomeIcon icon={isRecording ? faCircle : faMicrophone} color={isRecording ? "red" : "white"} />
-          </button>
-          <button
-            onClick={handleSend}
-            disabled={!inputMessage.trim() || characterLoading}
-            className="send-button"
-            aria-label="Gửi tin nhắn"
-          >
-            <FontAwesomeIcon icon={faPaperPlane} />
-          </button>
-        </div>
+            </div>
+            <div className="chatBox-body-input">
+              <input
+                type="text"
+                placeholder="Nhập tin nhắn..."
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyDown={handleKeyDown}
+                disabled={characterLoading}
+              />
+              <button
+                className={`mic-button ${isRecording ? "recording" : ""}`}
+                onClick={handleRecord}
+                disabled={characterLoading}
+                aria-label={isRecording ? "Dừng ghi âm" : "Bắt đầu ghi âm"}
+              >
+                <FontAwesomeIcon icon={isRecording ? faCircle : faMicrophone} color={isRecording ? "red" : "white"} />
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={!inputMessage.trim() || characterLoading}
+                className="send-button"
+                aria-label="Gửi tin nhắn"
+              >
+                <FontAwesomeIcon icon={faPaperPlane} />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
