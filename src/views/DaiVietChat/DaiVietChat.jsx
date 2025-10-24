@@ -9,6 +9,7 @@ import Video from "../../components/Video/Video.jsx";
 import LoadingDots from "../../components/LoadingDots/LoadingDots.jsx";
 import "./DaiVietChat.css";
 import introductionVideos from "../../assets/videos/initial_introduction/videoRoot.js";
+import sandClockIcon from "../../assets/images/sand-clock.png";
 
 const STREAM_URL = `${API_CONFIG.SERVER_URL}/chat/stream-post`;
 
@@ -20,6 +21,7 @@ const DaiVietChat = () => {
   const [talkingHeadVideo, setTalkingHeadVideo] = useState("");
   const [notification, setNotification] = useState("");
   const [hasStarted, setHasStarted] = useState(false);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
   const messagesEndRef = useRef();
   const typingQueueRef = useRef([]);
   const typingActiveRef = useRef(false);
@@ -115,10 +117,12 @@ const DaiVietChat = () => {
           return;
         }
 
+        setIsGeneratingVideo(true);
+
         const formData = new FormData();
         formData.append("text", text);
 
-        const response = await fetch(`https://kirstie-unthinkable-vita.ngrok-free.dev/generate_video_new`, {
+        const response = await fetch(`https://kirstie-unthinkable-vita.ngrok-free.dev/generate_video`, {
           method: "POST",
           body: formData
         });
@@ -148,6 +152,8 @@ const DaiVietChat = () => {
         localStorage.setItem(text, videoUrl);
       } catch (error) {
         console.warn("Text-to-speech API failed, using mock video:", error.message);
+      } finally {
+        setIsGeneratingVideo(false);
       }
     },
     [character]
@@ -186,19 +192,26 @@ const DaiVietChat = () => {
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
+        let fullText = "";
 
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
 
           const chunk = decoder.decode(value, { stream: true });
+          fullText += chunk;
           await typeEnqueue(chunk);
+        }
+
+        // Sau khi nhận đầy đủ các chunk, gọi generateTalkingHeadVideo
+        if (fullText.trim()) {
+          await generateTalkingHeadVideo(fullText);
         }
       } catch (error) {
         console.warn("Chat stream API failed, using mock response:", error?.message);
       }
     },
-    [character, typeEnqueue]
+    [character, typeEnqueue, generateTalkingHeadVideo]
   );
 
   const handleSend = useCallback(async () => {
@@ -288,6 +301,12 @@ const DaiVietChat = () => {
       {notification && <div className="notification">{notification}</div>}
 
       <div className="chatBox-video">
+        {isGeneratingVideo && (
+          <div className="video-loading-overlay">
+            <img src={sandClockIcon} alt="Loading" className="sand-clock-icon" />
+            <p>Đang tạo video...</p>
+          </div>
+        )}
         {talkingHeadVideo ? (
           <video ref={videoRef} controls autoPlay src={talkingHeadVideo} className="character-video">
             Trình duyệt của bạn không hỗ trợ video.
@@ -387,7 +406,6 @@ const DaiVietChat = () => {
                 onKeyDown={handleKeyDown}
                 disabled={characterLoading}
               />
-              {/* <ToggleButton ref={inputRef} /> */}
               <button
                 className={`mic-button ${isRecording ? "recording" : ""}`}
                 onClick={handleRecord}

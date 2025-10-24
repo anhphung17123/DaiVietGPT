@@ -64,6 +64,49 @@
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
+.video-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(5px);
+    z-index: 10;
+    color: white;
+}
+
+.sand-clock-icon {
+    width: 60px;
+    height: 60px;
+    animation: rotateSandClock 2s linear infinite;
+    margin-bottom: 15px;
+}
+
+@keyframes rotateSandClock {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+
+    100% {
+        transform: rotate(180deg);
+    }
+}
+
+.video-loading-overlay p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
 .chatBox-main {
     display: flex;
     flex-direction: column;
@@ -481,6 +524,7 @@
 
     .chatBox-video {
         width: 300px;
+        height: 300px;
     }
 
     .chatBox-main {
